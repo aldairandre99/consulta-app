@@ -3,7 +3,7 @@ const app = express();
 app.use(express.json());
 
 const consultas = [];
-const PORT = process.env.PORT 
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 

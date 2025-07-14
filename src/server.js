@@ -5,6 +5,8 @@ app.use(express.json());
 const consultas = [];
 const PORT = process.env.PORT 
 
+app.use(express.json());
+
 app.get("/ping", (req, res) => {
   res.status(200).send("pong");
 });
@@ -22,3 +24,5 @@ app.post("/consultas", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+export default app;

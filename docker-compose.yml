@@ -1,0 +1,12 @@
+services:
+  consulta-app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+
+    container_name: consulta-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/src
+      - /src/node_modules

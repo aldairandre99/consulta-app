@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node --watch src/server.js",
-    "test": "vitest"
+    "test": "vitest",
+    "release": "standard-version"
   },
   "keywords": [],
   "author": "",

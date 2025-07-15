@@ -1,12 +1,81 @@
-services:
-  consulta-app:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+name: CI/CD - Release Pipeline
 
-    container_name: consulta-app
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/src
-      - /src/node_modules
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: consulta-app
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps and run tests
+        run: |
+          npm ci
+          npm test
+
+  release:
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Bump version and create changelog
+        run: npx standard-version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Push tag to GitHub
+        run: |
+          git config user.name "aldairandre99"
+          git config user.email "nzolageral@gmail.com"
+          git push --follow-tags origin dev
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+  docker:
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Extract version
+        id: get_version
+        run: |
+          TAG=$(git describe --tags --abbrev=0)
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.TAG }} .
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.TAG }}
